@@ -1,5 +1,6 @@
 # Importa el módulo sqlite3 para manejar la base de datos SQLite
 import sqlite3
+import os
 # Importa argparse para manejar argumentos de línea de comandos
 import argparse
 # Importa FastMCP, el framework del servidor MCP
@@ -8,9 +9,18 @@ from mcp.server.fastmcp import FastMCP
 # Crea una instancia global de FastMCP con el nombre 'sqlite-demo'
 mcp = FastMCP('sqlite-demo')
 
+# Asegurar que el directorio data existe
+def ensure_data_dir():
+    data_dir = './data'
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    return data_dir
+
 # Inicializa la base de datos y crea la tabla 'people' si no existe
 def init_db():
-    conn = sqlite3.connect('../data/demo.db')  # Conexión a la base de datos SQLite
+    ensure_data_dir()
+    db_path = './data/demo.db'  # Ruta corregida
+    conn = sqlite3.connect(db_path)  # Conexión a la base de datos SQLite
     cursor = conn.cursor()
     # Crea la tabla 'people' si no existe
     cursor.execute('''
@@ -104,7 +114,7 @@ def get_all_people() -> list:
     """
     return get_people("SELECT * FROM people")
 
-# Herramienta MCP para buscar personas por nombre
+# Herramienta MCP para buscar personas por nombre (CORREGIDO - sin inyección SQL)
 @mcp.tool()
 def find_person_by_name(name: str) -> list:
     """
@@ -116,7 +126,20 @@ def find_person_by_name(name: str) -> list:
     Retorna:
         list: Lista de personas que coinciden con el nombre.
     """
-    return get_people(f"SELECT * FROM people WHERE name LIKE '%{name}%'")
+    conn, cursor = init_db()
+    try:
+        cursor.execute(
+            "SELECT * FROM people WHERE name LIKE ?",
+            (f'%{name}%',)
+        )
+        columns = [description[0] for description in cursor.description]
+        results = cursor.fetchall()
+        return [dict(zip(columns, row)) for row in results]
+    except sqlite3.Error as e:
+        print(f"Error searching person: {e}")
+        return []
+    finally:
+        conn.close()
 
 # Punto de entrada principal del servidor
 if __name__ == "__main__":
