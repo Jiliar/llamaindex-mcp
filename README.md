@@ -34,21 +34,7 @@ Launch the local SQLite MCP server:
 uv run server.py --server_type=sse
 ```
 
-### 3. Run the Client
-
-Choose the client that matches your LLM backend:
-
-**For OpenAI-compatible models:**
-```sh
-uv run client.py
-```
-
-**For Ollama models:**
-```sh
-uv run ollama_client.py
-```
-
-### 4. Interact with the Agent
+### 3. Interact with the Agent
 
 Once running, type your natural language queries in the terminal. The agent will intelligently use the available tools to answer your questions.
 
